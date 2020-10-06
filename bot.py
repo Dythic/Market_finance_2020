@@ -1,18 +1,6 @@
-import fxcmpy # use 'pip3 install python-socketio' if this not working. install also 'pip3 install matplotlib'
-import pandas as pd
-import datetime as dt
+#!/usr/bin/env python3
 
-print(fxcmpy.__version__)
-
-con = fxcmpy.fxcmpy(config_file='fxcm.cfg', server='demo')
-
-instruments = con.get_instruments()
-print('List of currency: ')
-print(instruments[:5]) # ['EUR/USD','USD/JPY','GBP/USD','USD/CHF','EUR/CHF']
-
-ids = con.get_account_ids()
-
-# some informations:
+ some informations:
 #       minutes: m1, m5, m15 and m30,
 #       hours: H1, H2, H3, H4, H6 and H8,
 #       one day: D1,
