@@ -8,9 +8,9 @@ This tool should be totaly automated and doesn't require any interaction.
 ## Getting started
 These instructions will help you to start to work with our tool in the best conditions
 ```
-  git clone git@github.com/thmarinho/market-trading
-  cd market-trading
-  pip install -r requirement.txt
+  git@github.com:Dythic/Market_finance_2020.git
+  cd Market_finance_2020
+  pip3 install -r requirement.txt
   python3 app.py
 ```
 ---
