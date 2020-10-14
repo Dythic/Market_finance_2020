@@ -13,7 +13,7 @@ bb_periods = 20
 bb_standard_deviations = 2.0
 adx_periods = 14
 adx_trade_below = 25
-amount = 5
+amount = 10
 
 pricedata = None
 numberofcandles = 300
@@ -124,9 +124,9 @@ def Update():
     print(str(dt.datetime.now()) + " " + timeframe + " Update Function Completed.\n")
 
 def enter(BuySell, stop, limit):
-    direction = True;
+    direction = True
     if BuySell == "S":
-        direction = False;
+        direction = False
     try:
         opentrade = con.open_trade(symbol=symbol, is_buy=direction, amount=amount, time_in_force="GTC", order_type='AtMarket', is_in_pips=False, limit=limit, stop=stop)
     except:
@@ -135,14 +135,14 @@ def enter(BuySell, stop, limit):
         print("   Trade Opened Successfully")
 
 def exit(BuySell=None):
-    openpositions = con.get_open_position(kind = 'list')
+    openpositions = con.get_open_positions(kind='list')
     isbuy = True
     if BuySell == "S":
         isbuy = False
     for position in openpositions:
         if position['currency'] == symbol:
             if BuySell is None or position['isBuy'] == isbuy:
-                print("   Closing tradeID: " + position['tardeId'])
+                print("   Closing tradeID: " + position['tradeId'])
                 try:
                     print("   Closing tradeID: " + position['tradeId'], amount=position['amountK'])
                 except:
