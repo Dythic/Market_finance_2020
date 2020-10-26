@@ -5,16 +5,18 @@ import time
 import datetime as dt
 import pyti.bollinger_bands as bb
 from pyti.directional_indicators import average_directional_index as adx
+from pyti.relative_strength_index import relative_strength_index as rsi
 
 ###### USER PARAMETERS ######
 token = '572413a650c252f66e0501cf79fc5069922d0e73'
 symbol = 'EUR/USD'
-timeframe = "m1"	        # (m1,m5,m15,m30,H1,H2,H3,H4,H6,H8,D1,W1,M1)
-bb_periods = 20
-bb_standard_deviations = 2.0
-adx_periods = 14
-adx_trade_below = 25
-amount = 5
+timeframe = "m15"           # (m1,m5,m15,m30,H1,H2,H3,H4,H6,H8,D1,W1,M1)
+rsi_periods = 14
+upper_rsi = 70.0
+lower_rsi = 30.0
+amount = 1
+stop = -20
+limit = None
 #############################
 
 # Global Variables
@@ -78,67 +80,41 @@ def getLatestPriceData():
 
 # This function is run every time a candle closes
 def Update():
-    print(str(dt.datetime.now()) + "	 " + timeframe + " Bar Closed - Running Update Function...")
+    print(str(dt.datetime.now()) + "     " + timeframe + " Bar Closed - Running Update Function...")
 
     # Calculate Indicators
-    iBBUpper = bb.upper_bollinger_band(pricedata['bidclose'], bb_periods, bb_standard_deviations)
-    iBBMiddle = bb.middle_bollinger_band(pricedata['bidclose'], bb_periods, bb_standard_deviations)
-    iBBLower = bb.lower_bollinger_band(pricedata['bidclose'], bb_periods, bb_standard_deviations)
-    iADX = adx(pricedata['bidclose'], pricedata['bidhigh'], pricedata['bidlow'], adx_periods)
-
-    # Declare simplified variable names for most recent close candle
-    close_price = pricedata['bidclose'][len(pricedata)-1]
-    BBUpper = iBBUpper[len(iBBUpper)-1]
-    BBMiddle = iBBMiddle[len(iBBMiddle)-1]
-    BBLower = iBBLower[len(iBBLower)-1]
-    ADX = iADX[len(iADX)-1]
+    iRSI = rsi(pricedata['bidclose'], rsi_periods)
 
     # Print Price/Indicators
-    print("Close Price: " + str(close_price))
-    print("Upper BB: " + str(BBUpper))
-    print("Middle BB: " + str(BBMiddle))
-    print("Lower BB: " + str(BBLower))
-    print("ADX: " + str(ADX))
+    print("Close Price: " + str(pricedata['bidclose'][len(pricedata)-1]))
+    print("RSI: " + str(iRSI[len(iRSI)-1]))
 
     # TRADING LOGIC
 
-    # Change Any Existing Trades' Limits to Middle Bollinger Band
-    if countOpenTrades()>0:
-        openpositions = con.get_open_positions(kind='list')
-        for position in openpositions:
-            if position['currency'] == symbol:
-                print("Changing Limit for tradeID: " + position['tradeId'])
-                try:
-                    editlimit = con.change_trade_stop_limit(trade_id=position['tradeId'], is_stop=False, rate=BBMiddle, is_in_pips=False)
-                except:
-                    print("	  Error Changing Limit.")
-                else:
-                    print("	  Limit Changed Successfully.")
     # Entry Logic
-    if ADX < adx_trade_below:
-        if countOpenTrades("B") == 0 and close_price < BBLower: 
-            print(" BUY SIGNAL!") 
-            print(" Opening Buy Trade...") 
-            stop = pricedata['askclose'][len(pricedata)-1] - (BBMiddle - pricedata['askclose'][len(pricedata)-1]) 
-            limit = BBMiddle 
-            enter("B", stop, limit) 
-        
-        if countOpenTrades("S") == 0 and close_price > BBUpper:
-            print("	  SELL SIGNAL!")
-            print("	  Opening Sell Trade...")
-            stop = pricedata['bidclose'][len(pricedata)-1] + (pricedata['bidclose'][len(pricedata)-1] - BBMiddle)
-            limit = BBMiddle
-            enter("S", stop, limit)
+    # If RSI crosses over lower_rsi, Open Buy Trade
+    if crossesOver(iRSI, lower_rsi):
+        print("   BUY SIGNAL!")
+        print("   Opening Buy Trade...")
+        enter("B")
+    # If RSI crosses under upper_rsi, Open Sell Trade
+    if crossesUnder(iRSI, upper_rsi):
+        print("   SELL SIGNAL!")
+        print("   Opening Sell Trade...")
+        enter("S")
 
     # Exit Logic
-    if countOpenTrades("B") > 0 and close_price > BBMiddle:
-        print("	  Closing Buy Trade(s)...")
+    # If RSI is greater than upper_rsi and we have Buy Trade(s), Close Buy Trade(s)
+    if iRSI[len(iRSI)-1] > upper_rsi and countOpenTrades("B") > 0:
+        print("   RSI above " + str(upper_rsi) + ". Closing Buy Trade(s)...")
         exit("B")
-    if countOpenTrades("S") > 0 and close_price < BBMiddle:
-        print("	  Closing Sell Trade(s)...")
+    # If RSI is less than than lower_rsi and we have Sell Trade(s), Close Sell Trade(s)
+    if iRSI[len(iRSI)-1] < lower_rsi and countOpenTrades("S") > 0:
+        print("   RSI below " + str(lower_rsi) + ". Closing Sell Trade(s)...")
         exit("S")
 
-    print(str(dt.datetime.now()) + "	 " + timeframe + " Update Function Completed.\n")
+    print(str(dt.datetime.now()) + "     " + timeframe + " Update Function Completed.\n")
+
 
 # This function places a market order in the direction BuySell, "B" = Buy, "S" = Sell, uses symbol, amount
 # Edited to include stop and limit levels determined by BB from the Update() function
